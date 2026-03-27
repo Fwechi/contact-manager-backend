@@ -24,21 +24,26 @@ app.use(
 
 app.use(express.json());
 
-// ✅ TEMP DATABASE
+// ================= TEMP DATABASE =================
+
 let contacts = [];
-let users = []; // ✅ ADD THIS
+let users = [];
 
 // ================= AUTH =================
 
 // REGISTER
 app.post("/contactmsyt/register", (req, res) => {
-  const { email, password, name } = req.body;
+  let { email, password, name } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({
       message: "Email and password are required",
     });
   }
+
+  // ✅ normalize input
+  email = email.trim().toLowerCase();
+  password = password.trim();
 
   const existingUser = users.find((u) => u.email === email);
 
@@ -51,6 +56,9 @@ app.post("/contactmsyt/register", (req, res) => {
   const newUser = { email, password, name };
   users.push(newUser);
 
+  console.log("REGISTERED USER:", newUser);
+  console.log("ALL USERS:", users);
+
   return res.status(200).json({
     message: "Registered successfully",
   });
@@ -58,7 +66,14 @@ app.post("/contactmsyt/register", (req, res) => {
 
 // LOGIN
 app.post("/contactmsyt/login", (req, res) => {
-  const { email, password } = req.body;
+  let { email, password } = req.body;
+
+  // ✅ normalize input
+  email = email?.trim().toLowerCase();
+  password = password?.trim();
+
+  console.log("LOGIN ATTEMPT:", email, password);
+  console.log("CURRENT USERS:", users);
 
   const user = users.find(
     (u) => u.email === email && u.password === password
@@ -152,6 +167,7 @@ app.put("/contactmsyt/update-contact/:id", (req, res) => {
 
 // ================= SERVER =================
 
+// ✅ REQUIRED FOR RENDER
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
