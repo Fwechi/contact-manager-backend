@@ -3,24 +3,8 @@ const cors = require("cors");
 
 const app = express();
 
-// ✅ ALLOW BOTH LOCAL + DEPLOYED FRONTEND
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://contact-manager-improved.vercel.app",
-];
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  })
-);
+// ✅ FIXED CORS (ALLOW ALL)
+app.use(cors());
 
 app.use(express.json());
 
@@ -33,62 +17,84 @@ let users = [];
 
 // REGISTER
 app.post("/contactmsyt/register", (req, res) => {
-  let { email, password, name } = req.body;
+  try {
+    let { email, password, name } = req.body;
 
-  if (!email || !password) {
-    return res.status(400).json({
-      message: "Email and password are required",
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
+    }
+
+    // normalize input
+    email = email.trim().toLowerCase();
+    password = password.trim();
+
+    const existingUser = users.find((u) => u.email === email);
+
+    if (existingUser) {
+      return res.status(400).json({
+        message: "User already exists",
+      });
+    }
+
+    const newUser = { email, password, name };
+    users.push(newUser);
+
+    console.log("REGISTERED USER:", newUser);
+    console.log("ALL USERS:", users);
+
+    return res.status(200).json({
+      message: "Registered successfully",
+    });
+
+  } catch (error) {
+    console.error("REGISTER ERROR:", error);
+    return res.status(500).json({
+      message: "Server error",
     });
   }
-
-  // ✅ normalize input
-  email = email.trim().toLowerCase();
-  password = password.trim();
-
-  const existingUser = users.find((u) => u.email === email);
-
-  if (existingUser) {
-    return res.status(400).json({
-      message: "User already exists",
-    });
-  }
-
-  const newUser = { email, password, name };
-  users.push(newUser);
-
-  console.log("REGISTERED USER:", newUser);
-  console.log("ALL USERS:", users);
-
-  return res.status(200).json({
-    message: "Registered successfully",
-  });
 });
 
 // LOGIN
 app.post("/contactmsyt/login", (req, res) => {
-  let { email, password } = req.body;
+  try {
+    let { email, password } = req.body;
 
-  // ✅ normalize input
-  email = email?.trim().toLowerCase();
-  password = password?.trim();
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
+    }
 
-  console.log("LOGIN ATTEMPT:", email, password);
-  console.log("CURRENT USERS:", users);
+    // normalize input
+    email = email.trim().toLowerCase();
+    password = password.trim();
 
-  const user = users.find(
-    (u) => u.email === email && u.password === password
-  );
+    console.log("LOGIN ATTEMPT:", email, password);
+    console.log("CURRENT USERS:", users);
 
-  if (!user) {
-    return res.status(401).json({
-      message: "Invalid credentials",
+    const user = users.find(
+      (u) => u.email === email && u.password === password
+    );
+
+    if (!user) {
+      return res.status(401).json({
+        message: "Invalid credentials",
+      });
+    }
+
+    return res.status(200).json({
+      token: "dummy-token",
+      user: { email: user.email, name: user.name },
+    });
+
+  } catch (error) {
+    console.error("LOGIN ERROR:", error);
+    return res.status(500).json({
+      message: "Server error",
     });
   }
-
-  return res.status(200).json({
-    token: "dummy-token",
-    user: { email: user.email, name: user.name },
-  });
 });
 
 // VERIFY
@@ -167,7 +173,6 @@ app.put("/contactmsyt/update-contact/:id", (req, res) => {
 
 // ================= SERVER =================
 
-// ✅ REQUIRED FOR RENDER
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
